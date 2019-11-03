@@ -83,6 +83,8 @@ class Network:
         return self.a3
 
     def backward(self, out, _expected):
+        # is it correct to pass in the activation and not z3 (z2 respectively) ?
+        # When passing z the network does not perform well, however that is what the help document suggested
         e3 = -(_expected - out) * d_sigmoid(self.a3)
         e2 = np.dot(self.weights2_3.T, e3) * d_sigmoid(self.a2)
         self.d_weights2_3 += e3.reshape(len(e3), 1) * self.a2
@@ -132,7 +134,7 @@ if __name__ == '__main__':
         hidden_activations.append(nn.a2[1:])
         # print('expected ', example[:, i])
         # print('out ', out)
-        print('mse ', loss(out, example[:, i]))
+        # print('mse ', loss(out, example[:, i]))
 
     # print(hidden_activations)
     plot_activations(hidden_activations)
