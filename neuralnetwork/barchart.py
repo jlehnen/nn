@@ -1,11 +1,9 @@
 import matplotlib.pyplot as plt
 import numpy as np
 
-fig, axes = plt.subplots(2, 4)
-activations = np.random.rand(8, 3)*2
-
 
 def plot_activations(activations):
+    fig, axes = plt.subplots(2, 4)
     for i in range(len(activations)):
         y_pos = np.arange(len(activations[i]))
         a = 0 if i < 4 else 1
@@ -22,6 +20,3 @@ def plot_activations(activations):
     fig.suptitle('Activations')
     fig.savefig('activations.pdf', format="pdf", bbox_inches='tight')
     plt.show()
-
-
-plot_activations(activations)

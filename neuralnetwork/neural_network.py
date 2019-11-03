@@ -1,12 +1,14 @@
 import numpy as np
+import pandas as pd
 import matplotlib.pyplot as plt
 from tqdm import tqdm
+from barchart import plot_activations
 
 np.set_printoptions(linewidth=400)
 
-L_RATE = 0.5
+L_RATE = 0.7
 LAMBDA = 0.00001
-EPOCHS = 5000
+EPOCHS = 10000
 NUM_INPUTS = 8
 NUM_HID = 3
 
@@ -23,43 +25,35 @@ def loss(h, y):
     return (np.square(h - y)).mean()
 
 
-def hyper_parameter_optimization(verbose=True):
+def hyper_parameter_optimization(verbose=True, runs=10):
     # np.random.seed(42690)
     exmple = expct = np.eye(NUM_INPUTS)
-    results = []
-    for l_rate in tqdm([0.1, 0.3, 0.5, 0.7], disable=not verbose):
-        for lambd in [0.00001, 0.0001, 0.005]:
-            nn = Network(NUM_INPUTS, NUM_HID, NUM_INPUTS)
+    df = pd.DataFrame(columns=['l_rate', 'lambda', 'final_loss'])
+    for i in tqdm(range(runs), disable=not verbose):
+        for l_rate in [0.1, 0.3, 0.5, 0.7]:
+            for lambd in [0.00001, 0.0001, 0.005]:
+                nn = Network(NUM_INPUTS, NUM_HID, NUM_INPUTS, l_rate=l_rate, lambd=lambd)
 
-            hist = []
-            for ep in range(EPOCHS):
-                hist = nn.train(exmple, expct)
+                hist = []
+                for ep in range(EPOCHS):
+                    hist = nn.train(exmple, expct)
 
-            results.append(
-                {
-                    'l_rate': l_rate,
-                    'lambda': lambd,
-                    'loss': hist
-                }
-            )
-
-    best_config = results[0]
-    for result in results:
-        if verbose:
-            print(f"l_rate: {result['l_rate']}, lambda: {result['lambda']}, loss: {result['loss'][-1]}")
-        if result['loss'][-1] < best_config['loss'][-1]:
-            best_config = result
-        plt.plot(result['loss'], label=f"lr: {result['l_rate']}, ld: {result['lambda']}", linewidth=2)
-    plt.legend()
-    if verbose:
-        print(f"best config: l_rate: {best_config['l_rate']}, lambda: {best_config['lambda']}, loss: {best_config['loss'][-1]}")
-        plt.show()
-    return best_config
+                df = df.append(
+                    {
+                        'l_rate': l_rate,
+                        'lambda': lambd,
+                        'final_loss': hist[-1]
+                    },
+                    ignore_index=True
+                )
+    avg = df.groupby(['l_rate', 'lambda']).mean()
+    print(avg.loc[avg['final_loss'].idxmin()])
+    return avg
 
 
 class Network:
 
-    def __init__(self, num_input, num_hidden, num_output):
+    def __init__(self, num_input, num_hidden, num_output, l_rate=L_RATE, lambd=LAMBDA):
         self.weights1_2 = np.random.rand(num_hidden, num_input + 1)  # *1./50
         self.weights2_3 = np.random.rand(num_output, num_hidden + 1)  # *1./50
         self.biases = np.ones(2)
@@ -68,6 +62,8 @@ class Network:
         self.z2 = None
         self.z3 = None
         self.input = None
+        self.l_rate = l_rate
+        self.lambd = lambd
         self.zero_grad()
         self.loss_history = []
 
@@ -94,12 +90,12 @@ class Network:
 
     def step(self, batch_size):
         # weights
-        self.weights2_3[:, 1:] = self.weights2_3[:, 1:] - L_RATE * ((1. / batch_size) * self.d_weights2_3[:, 1:] + LAMBDA * self.weights2_3[:, 1:])
-        self.weights1_2[:, 1:] = self.weights1_2[:, 1:] - L_RATE * ((1. / batch_size) * self.d_weights1_2[:, 1:] + LAMBDA * self.weights1_2[:, 1:])
+        self.weights2_3[:, 1:] = self.weights2_3[:, 1:] - self.l_rate * ((1. / batch_size) * self.d_weights2_3[:, 1:] + self.lambd * self.weights2_3[:, 1:])
+        self.weights1_2[:, 1:] = self.weights1_2[:, 1:] - self.l_rate * ((1. / batch_size) * self.d_weights1_2[:, 1:] + self.lambd * self.weights1_2[:, 1:])
 
         # biases
-        self.weights2_3[:, 0] = self.weights2_3[:, 0] - L_RATE * ((1. / batch_size) * self.d_weights2_3[:, 0])
-        self.weights1_2[:, 0] = self.weights1_2[:, 0] - L_RATE * ((1. / batch_size) * self.d_weights1_2[:, 0])
+        self.weights2_3[:, 0] = self.weights2_3[:, 0] - self.l_rate * ((1. / batch_size) * self.d_weights2_3[:, 0])
+        self.weights1_2[:, 0] = self.weights1_2[:, 0] - self.l_rate * ((1. / batch_size) * self.d_weights1_2[:, 0])
 
         self.zero_grad()
 
@@ -117,27 +113,29 @@ class Network:
 
 
 if __name__ == '__main__':
-    '''
+    # Hyper Parameter Optimization
+    # hyper_parameter_optimization(runs=10)
+
     nn = Network(NUM_INPUTS, NUM_HID, NUM_INPUTS)
     example = expect = np.eye(NUM_INPUTS)
 
+    history = None
     for ep in range(EPOCHS):
         history = nn.train(example, expect)
         if ep % 200 == 0:
             print(f"epoch: {ep}\tloss: {history[-1]}")
 
-    print(history)
+    # print(history[-100:])
+    hidden_activations = []
     for i in range(len(example)):
         out = nn.forward(example[:, i])
-        print('expected ', example[:, i])
-        print('out ', out)
+        hidden_activations.append(nn.a2[1:])
+        # print('expected ', example[:, i])
+        # print('out ', out)
         print('mse ', loss(out, example[:, i]))
-    '''
-    hyper_parameter_optimization()
-    '''
-    best_configs = []
-    for i in tqdm(range(10)):
-        best_configs.append(hyper_parameter_optimization(verbose=False))
-    for conf in best_configs:
-        print(f"best config: l_rate: {conf['l_rate']}, lambda: {conf['lambda']}, loss: {conf['loss'][-1]}")
-    '''
+
+    # print(hidden_activations)
+    plot_activations(hidden_activations)
+    # plt.plot(history, label=f"lr: {L_RATE}, ld: {LAMBDA}", linewidth=2)
+    # plt.legend()
+    # plt.show()
