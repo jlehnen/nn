@@ -14,6 +14,7 @@ def plot_activations(activations):
         # axes[a, b].set_xlabel('Activation')
         axes[a, b].set_ylabel('Neuron')
         axes[a, b].set_title('Example {}'.format(i + 1))
+        axes[a, b].set_xlim(0, 1)
 
     fig.set_size_inches(10, 6)
     fig.subplots_adjust(hspace=0.4, wspace=0.4)

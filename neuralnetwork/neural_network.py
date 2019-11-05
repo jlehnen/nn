@@ -54,8 +54,8 @@ def hyper_parameter_optimization(verbose=True, runs=10):
 class Network:
 
     def __init__(self, num_input, num_hidden, num_output, l_rate=L_RATE, lambd=LAMBDA):
-        self.weights1_2 = np.random.randn(num_hidden, num_input + 1)  # rand vs randn
-        self.weights2_3 = np.random.randn(num_output, num_hidden + 1)
+        self.weights1_2 = np.random.rand(num_hidden, num_input + 1)  # rand vs randn
+        self.weights2_3 = np.random.rand(num_output, num_hidden + 1)
         self.biases = np.ones(2)
         self.a2 = None
         self.a3 = None
@@ -88,7 +88,7 @@ class Network:
         self.d_weights2_3 += e3.reshape(len(e3), 1) * self.a2
         self.d_weights1_2 += e2[1:].reshape(len(e2) - 1, 1) * self.input
 
-    def step(self, batch_size):
+    def _step(self, batch_size):
         # weights
         self.weights2_3[:, 1:] = self.weights2_3[:, 1:] - self.l_rate * ((1. / batch_size) * self.d_weights2_3[:, 1:] + self.lambd * self.weights2_3[:, 1:])
         self.weights1_2[:, 1:] = self.weights1_2[:, 1:] - self.l_rate * ((1. / batch_size) * self.d_weights1_2[:, 1:] + self.lambd * self.weights1_2[:, 1:])
@@ -107,7 +107,7 @@ class Network:
             self.backward(expected[:, i])
 
         self.loss_history.append(run_loss/len(examples))
-        self.step(batch_size=len(examples))
+        self._step(batch_size=len(examples))
 
         return self.loss_history
 
@@ -123,38 +123,41 @@ if __name__ == '__main__':
     for ep in range(EPOCHS):
         history = nn.train(example, expect)
         if ep % 200 == 0:
-            print(f"epoch: {ep}\tloss: {history[-1]}")
+            print("epoch: {}\tloss: {}".format(ep, history[-1]))
 
     hidden_activations = []
-    for i in range(len(example)):
-        out = nn.forward(example[:, i])
+    for a in range(len(example)):
+        out = nn.forward(example[:, a])
         hidden_activations.append(nn.a2[1:])
         # test model
-        '''
-        print('expected ', example[:, i])
+
+        print('expected ', example[:, a])
         print('out ', out)
-        print('mse ', loss(out, example[:, i]))
-        '''
+        print('mse ', loss(out, example[:, a]))
+
         
     # plot activations
-    '''
-    print(hidden_activations)
+
+    # print(hidden_activations)
     plot_activations(hidden_activations)
-    '''
+
 
     # plot weights
     '''
     print(nn.weights1_2)
     print(nn.weights2_3)
+    '''
     fig, axes = plt.subplots(1, 2)
     axes[0].matshow(nn.weights1_2.T)
     axes[1].matshow(nn.weights2_3.T)
+    fig.suptitle('Weights')
+    fig.savefig('weights.pdf', format="pdf", bbox_inches='tight')
     plt.show()
-    '''
+
 
     # plot loss
     '''
-    plt.plot(history, label=f"lr: {L_RATE}, ld: {LAMBDA}", linewidth=2)
+    plt.plot(history, label="lr: {}, ld: {}".format(L_RATE, LAMBDA), linewidth=2)
     plt.legend()
     plt.show()
     '''
